@@ -136,9 +136,7 @@ module.exports.getTime = getTime;
       </slide-view>
      </panel>
     <!--toast /-->
-    <functional-page-navigator name="loginAndGetUserInfo" bind:success="loginSuccess" version="develop">
-      <button>登录到插件</button>
-    </functional-page-navigator>
+    <button type="primary" open-type="getUserInfo" bindgetuserinfo="onGetUserInfo">登录到插件</button>
   </div>
 </template>
 
@@ -283,6 +281,26 @@ module.exports.getTime = getTime;
       },
       loginSuccess(data) {
         console.log(data);
+      },
+      onGetUserInfo(e) {
+        console.log(e.$wx.detail);
+        wx.login({
+          success(res) {
+            console.log(res);
+            if (res.code) {
+              wx.request({
+                url: 'http://localhost:3000/users/login',
+                method: 'POST',
+                data: {
+                  code: res.code
+                },
+                success (res) {
+                  console.log(res.data);
+                }
+              });
+            }
+          }
+        });
       }
     },
 
