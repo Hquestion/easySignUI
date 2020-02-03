@@ -1,0 +1,147 @@
+<style lang="less">
+  .post-container {
+    padding: 20rpx;
+    .userinfo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .userinfo-avatar {
+      width: 80rpx;
+      height: 80rpx;
+      border-radius: 50%;
+    }
+
+    .userinfo-nickname {
+      color: #aaa;
+    }
+
+    input {
+      margin-bottom: 30rpx;
+      border-radius: 5rpx;
+      border: 1rpx solid #dedede;
+      height: 80rpx;
+      line-height: 80rpx;
+      padding-left: 20rpx;
+    }
+    textarea {
+      width: calc(100% - 40rpx);
+      height: 50vh;
+      border: 1rpx solid #dedede;
+      border-radius: 5rpx;
+      padding: 20rpx;
+    }
+    .publish-btn {
+      margin-top: 50rpx;
+    }
+  }
+
+</style>
+<template>
+  <div class="post-container">
+    <div class="userinfo" @tap="handleViewTap">
+      <image class="userinfo-avatar" src="{{ userInfo.avatar }}" background-size="cover"/>
+      <div class="userinfo-nickname">{{ userInfo.nickname }}</div>
+    </div>
+
+    <input v-model="title" placeholder="请输入消息标题" placeholder-style="line-height: 80rpx" />
+    <textarea class="message-input" v-model="message" placeholder="请输入消息内容">
+
+    </textarea>
+
+    <view class="publish-btn">
+      <van-button size="normal" type="primary" block @tap="publish">发布</van-button>
+    </view>
+
+
+    <!--toast /-->
+    <van-notify id="van-notify" />
+  </div>
+</template>
+
+<script>
+  import wepy from '@wepy/core';
+  import store from '../store';
+  import httpService from '../service/httpService';
+  import Notify from '../components/vant/notify/notify';
+
+  wepy.page({
+    store,
+    config: {
+      navigationBarTitleText: 'test'
+    },
+
+    hooks: {
+      // Page 级别 hook, 只对当前 Page 的 setData 生效。
+      'before-setData': function (dirty) {
+        if (Math.random() < 0.2) {
+          console.log('setData canceled');
+          return false; // Cancel setData
+        }
+        dirty.time = +new Date();
+        return dirty;
+      }
+    },
+
+    mixins: [],
+
+    data: {
+      title: '',
+      message: '',
+      userInfo: {
+        nickname: '获取用户信息中...'
+      }
+    },
+
+    computed: {
+
+    },
+
+    methods: {
+      publish() {
+        if (this.title.trim() === '') {
+          //
+          Notify({ type: 'danger', message: '标题不能为空' });
+          return;
+        }
+        if (this.message.trim() === '') {
+          Notify({ type: 'danger', message: '消息内容不能为空' });
+          return;
+        }
+        httpService.post('/message/create', {
+          title: this.title,
+          content: this.message
+        }).then(res => {
+          wx.navigateTo({
+            url: 'detail?id=' + res.id
+          });
+        });
+      }
+    },
+
+    created () {
+      let self = this;
+      const userInfo = wx.getStorageSync('user');
+      if (userInfo) {
+        self.userInfo = userInfo;
+      } else {
+        self.userInfo = {};
+      }
+    },
+
+    onHide() {
+      this.title = '';
+      this.message = '';
+    }
+  });
+</script>
+<config>
+  {
+    navigationBarTitleText: '发布消息',
+    usingComponents: {
+      "van-button": "~@/components/vant/button/index",
+      "van-notify": '~@/components/vant/notify/index'
+    }
+  }
+</config>

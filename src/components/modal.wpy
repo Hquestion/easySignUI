@@ -1,0 +1,70 @@
+<template>
+  <div class="modal" v-show="modalVisible">
+    <div class="mask"></div>
+    <div class="modal-main">
+      <slot></slot>
+    </div>
+  </div>
+</template>
+
+<script>
+  import wepy from '@wepy/core';
+
+  wepy.component({
+    data: {
+
+    },
+    methods: {
+      open() {
+        this.visible = true;
+      },
+      close() {
+        this.visible = false;
+      }
+    },
+    props: {
+      visible: {
+        type: Boolean,
+        default: false
+      }
+    },
+    computed: {
+      modalVisible: {
+        get() {
+          return this.visible;
+        },
+        set(val) {
+          this.$emit('input', val);
+        }
+      }
+    }
+  });
+</script>
+
+<style lang="less">
+.modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  .mask {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,.6);
+  }
+  .modal-main {
+    width: 80%;
+    height: auto;
+    min-height: 100rpx;
+    background: #fff;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate3d(-50%, -50%, 0);
+  }
+}
+</style>

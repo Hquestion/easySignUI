@@ -4,7 +4,7 @@
   "description": "A WePY project",
   "main": "weapp/app.js",
   "scripts": {
-    "dev": "./node_modules/.bin/wepy build --watch",
+    "dev": "./node_modules/.bin/wepy build --watch --no-cache",
     "build": "cross-env NODE_ENV=production ./node_modules/.bin/wepy build --no-cache",
     "clean": "rm -rf weapp",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -16,10 +16,12 @@
   "author": "hexiaolei <1035271660@qq.com>",
   "license": "MIT",
   "dependencies": {
+    "@vant/weapp": "^1.0.4",
     "@wepy/core": "^2.0.0-alpha.9",
     "@wepy/x": "^2.0.2",
-    "kai-ui": "^1.2.4",
-    "miniprogram-slide-view": "0.0.3"
+    "dayjs": "^1.8.19",
+    "miniprogram-slide-view": "0.0.3",
+    "vant-weapp": "^0.5.27"
   },
   "devDependencies": {
     "@wepy/cli": "^2.0.0-alpha.20",

@@ -2,8 +2,8 @@
 	"description": "A WePY project",
 	"setting": {
 		"urlCheck": false,
-		"es6": false,
-		"postcss": false,
+		"es6": true,
+		"postcss": true,
 		"minified": false,
 		"newFeature": true,
 		"coverView": true,
@@ -17,7 +17,9 @@
 			"ignore": [],
 			"disablePlugins": [],
 			"outputPath": ""
-		}
+		},
+		"nodeModules": false,
+		"enhance": false
 	},
 	"compileType": "miniprogram",
 	"appid": "wxcec557acc1161e51",

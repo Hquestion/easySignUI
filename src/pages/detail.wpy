@@ -1,0 +1,257 @@
+<style lang="less">
+  .detail-container {
+    padding: 20rpx;
+    .title {
+      text-align: center;
+      font-size: 56rpx;
+      font-weight: bold;
+      line-height: 80rpx;
+    }
+    .author {
+      color: #a2a2a2;
+      font-style: italic;
+      font-size: 32rpx;
+      margin-top: 20rpx;
+      margin-bottom: 20rpx;
+    }
+    .content {
+      text-indent: 1em;
+    }
+    .publish-btn {
+      margin-top: 50rpx;
+    }
+    .sign-list {
+      margin-top: 40rpx;
+      image {
+        width: 100rpx;
+        height: 100rpx;
+        border-radius: 100rpx;
+      }
+      .time {
+        font-size: 24rpx;
+        color: #666;
+      }
+    }
+  }
+
+</style>
+<template>
+  <div class="detail-container">
+    <div class="title">
+      {{message.title}}
+    </div>
+    <div class="author">
+      <span>{{message.user.nickname}}</span>发布于<span>{{message.createTime}}</span>
+    </div>
+    <div class="content">
+      {{message.content}}
+    </div>
+
+    <view class="publish-btn">
+      <van-button size="normal" type="primary" block open-type="share" v-if="isOwner">发布</van-button>
+      <van-button size="normal" disabled="{{isSigned}}" type="info" block v-else @tap="doSign">签到</van-button>
+    </view>
+
+    <div class="sign-list">
+      <div style="line-height: 90rpx">已签到用户(共{{signUserList.length}}人)</div>
+      <van-grid column-num="3">
+        <van-grid-item
+          use-slot
+          v-for="(item,index) in signUserList"
+          :key="index"
+        >
+          <image src="{{item.user.avatar}}"/>
+          <div class="nickname">{{item.user.nickname}}</div>
+          <div class="time">{{item.createTime}}</div>
+        </van-grid-item>
+      </van-grid>
+    </div>
+
+    <dialog id="van-dialog" @getuserinfo="onGetUserInfo"></dialog>
+
+    <!--toast /-->
+  </div>
+</template>
+
+<script>
+  import wepy from '@wepy/core';
+  import store from '../store';
+  import httpService from '../service/httpService';
+  import dayjs from 'dayjs';
+  import Dialog from '../components/vant/dialog/dialog';
+
+  wepy.page({
+    store,
+    config: {
+      navigationBarTitleText: '消息详情'
+    },
+
+    hooks: {
+      // Page 级别 hook, 只对当前 Page 的 setData 生效。
+      'before-setData': function (dirty) {
+        if (Math.random() < 0.2) {
+          console.log('setData canceled');
+          return false; // Cancel setData
+        }
+        dirty.time = +new Date();
+        return dirty;
+      }
+    },
+
+    mixins: [],
+
+    data: {
+      message: {},
+      userInfo: {
+        nickname: '获取用户信息中...'
+      },
+      signUserList: []
+    },
+
+    computed: {
+      isOwner() {
+        return (this.userInfo.id + '') === (this.message.creator + '');
+      },
+      isSigned() {
+        return !!this.signUserList.find(item => (item.sign_user_id + '') === (this.userInfo.id + ''));
+      }
+    },
+
+    methods: {
+      doSign() {
+        const token = wx.getStorageSync('token');
+        if (token) {
+          // 调接口
+          httpService.post('/sign/sign', {
+            messageId: this.message.id
+          }).then(res => {
+            this.getSignUserList(this.message.id);
+            wx.showToast({
+              title: '签到成功',
+              icon: 'success',
+              duration: 2000
+            });
+          });
+        } else {
+          Dialog.alert({
+            title: '确认授权',
+            message: '为了正常使用Easy Sign小程序，我们需要获取您的用户信息。',
+            confirmButtonOpenType: 'getUserInfo',
+            context: this.$wx
+          });
+        }
+      },
+      onGetUserInfo(e) {
+        const self = this;
+        console.log('获取用户信息了...');
+        const userInfo = e.$wx.detail.userInfo;
+        wx.login({
+          success(res) {
+            console.log(res);
+            if (res.code) {
+              httpService.post('/users/login', {
+                code: res.code,
+                nickName: userInfo.nickName,
+                avatarUrl: userInfo.avatarUrl,
+                gender: userInfo.gender
+              }).then(res => {
+                console.log(res);
+                self.userInfo = res.userInfo;
+                wx.setStorageSync('user', res.userInfo);
+                wx.setStorageSync('token', res.token);
+                self.doSign();
+              }, err => {
+                console.log('login error: ');
+                console.log(err);
+              });
+            }
+          },
+          fail(err) {
+            console.log(err);
+          }
+        });
+      },
+      getSignUserList(id) {
+        httpService.get('/sign/list', {
+          messageId: id
+        }).then(res => {
+          res.forEach(item => {
+            item.createTime = dayjs(item.create_at).format('YY-MM-DD HH:mm');
+          });
+          this.signUserList = res;
+        });
+      }
+    },
+
+    created () {
+      let self = this;
+      const userInfo = wx.getStorageSync('user');
+      if (userInfo) {
+        self.userInfo = userInfo;
+      } else {
+        self.userInfo = {};
+      }
+    },
+    onLoad(options) {
+      const id = options.id;
+      wx.nextTick(() => {
+        httpService.get('/message/detail', {
+          id
+        }).then(res => {
+          res.createTime = dayjs(res.create_at).format('YYYY-MM-DD HH:mm:ss');
+          this.message = res;
+        });
+        this.getSignUserList(id);
+      });
+    },
+    onShareAppMessage: function(options) {
+      // 设置菜单中的转发按钮触发转发事件时的转发内容
+      var shareObj = {
+        title: this.message.title,        // 默认是小程序的名称(可以写slogan等)
+        path: '/pages/detail?id=' + this.message.id,        // 默认是当前页面，必须是以‘/’开头的完整路径
+        imageUrl: '',     // 自定义图片路径，可以是本地文件路径、代码包文件路径或者网络图片路径，支持PNG及JPG，不传入 imageUrl 则使用默认截图。显示图片长宽比是 5:4
+        success: function(res) {
+          // 转发成功之后的回调
+          if (res.errMsg === 'shareAppMessage:ok') {
+          }
+        },
+        fail: function(res) {
+          // 转发失败之后的回调
+          if (res.errMsg === 'shareAppMessage:fail cancel') {
+            // 用户取消转发
+          } else if (res.errMsg === 'shareAppMessage:fail') {
+            // 转发失败，其中 detail message 为详细失败信息
+          }
+        },
+        complete: function() {
+          // 转发结束之后的回调（转发成不成功都会执行）
+        }
+      };
+      // 来自页面内的按钮的转发
+      if (options.from === 'button') {
+        console.log(options);
+        var eData = options.target.dataset;
+        console.log(eData.name);     // shareBtn
+        // 此处可以修改 shareObj 中的内容
+      }
+      // 返回shareObj
+      return shareObj;
+    }
+  });
+</script>
+<config>
+  {
+    navigationBarTitleText: '消息详情',
+    usingComponents: {
+      panel: '~@/components/panel',
+      counter: '~counter',
+      list: '../components/list',
+      group: '../components/group',
+      "slide-view": "module:miniprogram-slide-view",
+      "van-button": "~@/components/vant/button/index",
+      "van-grid": "~@/components/vant/grid/index",
+      "van-grid-item": '~@/components/vant/grid-item/index',
+      "van-dialog": '~@/components/vant/dialog/index'
+    }
+  }
+</config>
